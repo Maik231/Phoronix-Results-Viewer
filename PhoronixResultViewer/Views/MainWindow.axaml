@@ -1,0 +1,80 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PhoronixResultViewer.ViewModels"
+        xmlns:local="using:PhoronixResultViewer.Converters"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+        xmlns:skiaSharpView="clr-namespace:LiveChartsCore.SkiaSharpView;assembly=LiveChartsCore.SkiaSharpView"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="PhoronixResultViewer.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="PhoronixResultViewer">
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainWindowViewModel />
+    </Design.DataContext>
+
+    <Window.Resources>
+        <local:ResultToDoubleConverter x:Key="ResultToDoubleConverter" />
+        <local:ResultToStringConverter x:Key="ResultToStringConverter" />
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="100"></RowDefinition>
+            <RowDefinition Height="*"></RowDefinition>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+        
+        <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal">
+            <Button Command="{Binding ImportResultsCommand}">Import result file</Button>
+            <CheckBox IsChecked="{Binding ExcludeAvx512}">Exclude AVX512</CheckBox>
+            <CheckBox IsChecked="{Binding OnlyShowResultsPerSuite}">Only show results per suite</CheckBox>
+        </StackPanel>
+        <ScrollViewer Grid.Row="1" Grid.Column="0" FontSize="20">
+            <ItemsControl ItemsSource="{Binding GroupedResults}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border BorderBrush="Gray" BorderThickness="1" Padding="5" Margin="5" CornerRadius="5">
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock Text="{Binding Key.Name}" />
+                                <Border BorderBrush="Gray" BorderThickness="1" Padding="5" Margin="5"
+                                        CornerRadius="5">
+                                    <ItemsControl ItemsSource="{Binding}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Vertical">
+                                                    <TextBlock>
+                                                        <TextBlock.Text>
+                                                            <MultiBinding StringFormat=" {0:0} - {1:0}">
+                                                                <Binding Path="Test.Title" />
+                                                                <Binding Path="Test.Description" />
+                                                            </MultiBinding>
+                                                        </TextBlock.Text>
+                                                    </TextBlock>
+                                                    <Border BorderBrush="Gray" BorderThickness="1" Padding="5"
+                                                            Margin="5"
+                                                            CornerRadius="5">
+                                                        <lvc:CartesianChart Width="600" Height="{Binding Height}" LegendPosition="Left" Series="{Binding Series}" YAxes="{Binding YAxes}" XAxes="{Binding XAxes}">
+                                                        </lvc:CartesianChart>
+                                                    </Border>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
+
+</Window>
