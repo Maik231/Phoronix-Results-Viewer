@@ -14,6 +14,7 @@
             <Style Selector="Border.card">
                 <Setter Property="CornerRadius" Value="16" />
                 <Setter Property="Padding" Value="30" />
+                <Setter Property="Margin" Value="15" />
                 <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
                 <Setter Property="BorderThickness" Value="1" />
                 <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeBrush}" />
@@ -23,9 +24,9 @@
     </Window.Styles>
 
     <Grid ColumnDefinitions="*" RowDefinitions="auto,*">
-        <Border Classes="card" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch" Margin="30">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Phoronix Result Viewer" />
+        <Border Classes="card" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="Phoronix Result Viewer" VerticalAlignment="Center" FontSize="30" FontWeight="Bold" />
 
                 <CheckBox IsEnabled="{Binding !FilterResultsCommand.IsExecuting}"
                           IsChecked="{Binding ExcludeAvx512}">
@@ -39,82 +40,90 @@
             </StackPanel>
         </Border>
 
-        <Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto,*" RowDefinitions="*" Margin="30, 0, 30, 30">
+        <Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto,*" RowDefinitions="*">
             <Border Classes="card" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch">
-                <StackPanel Orientation="Vertical">
-                    <StackPanel Orientation="Vertical">
-                        <TextBlock Text="Base system for relative performance" />
-                        <ItemsControl IsEnabled="{Binding !CalculateResultsCommand.IsExecuting}"
-                                      ItemsSource="{Binding Systems}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal">
-                                        <RadioButton IsChecked="{Binding IsBase}" GroupName="System">
-                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
-                                        </RadioButton>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
+                <ScrollViewer>
+                    <StackPanel Width="400" Orientation="Vertical" Spacing="20">
+                        <TextBlock Text="Configurations" HorizontalAlignment="Center" FontSize="30" FontWeight="Bold" />
+                        <StackPanel Orientation="Vertical" IsVisible="{Binding HasSystems}">
+                            <TextBlock Text="Base system for relative performance" FontSize="20" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" />
+                            <ItemsControl IsEnabled="{Binding !CalculateResultsCommand.IsExecuting}"
+                                          ItemsSource="{Binding Systems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal">
+                                            <RadioButton IsChecked="{Binding IsBase}" GroupName="System">
+                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                            </RadioButton>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                        <StackPanel Orientation="Vertical" IsVisible="{Binding HasSystems}">
+                            <TextBlock Text="Included Systems" FontSize="20" FontWeight="SemiBold"
+                                       HorizontalAlignment="Center" />
+                            <ItemsControl IsEnabled="{Binding !FilterResultsCommand.IsExecuting}"
+                                          ItemsSource="{Binding Systems}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding Include}">
+                                            <TextBlock Text="{Binding Name}" />
+                                        </CheckBox>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
                     </StackPanel>
-                    <StackPanel Orientation="Vertical">
-                        <TextBlock Text="Included Systems" />
-                        <ItemsControl IsEnabled="{Binding !FilterResultsCommand.IsExecuting}"
-                                      ItemsSource="{Binding Systems}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <CheckBox IsChecked="{Binding Include}">
-                                        <TextBlock Text="{Binding Name}" />
-                                    </CheckBox>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </StackPanel>
+                </ScrollViewer>
             </Border>
             <ScrollViewer Grid.Row="0" Grid.Column="1">
                 <ItemsControl ItemsSource="{Binding GroupedResults}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <VirtualizingStackPanel CacheLength="1"/>
+                            <VirtualizingStackPanel CacheLength="1" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border Classes="card" Margin="30, 0, 30, 30">
+                            <Border Classes="card">
                                 <Grid RowDefinitions="50, 20, auto" ColumnDefinitions="*">
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Key.Name}" FontSize="40" FontWeight="Bold"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding Key.TestNames.Count, StringFormat='{}{0} Tests'}"/>
-                                    <Border Grid.Row="2" Grid.Column="0" Classes="card">
-                                        <ItemsControl ItemsSource="{Binding}">
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate>
-                                                    <WrapPanel />
-                                                </ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <lvc:CartesianChart ZoomMode="None" Background="White" Foreground="White"
-                                                            HorizontalAlignment="Left"
-                                                            Width="600" Height="{Binding Height}"
-                                                            Series="{Binding Series}"
-                                                            YAxes="{Binding YAxes}"
-                                                            XAxes="{Binding XAxes}" >
+                                    <Panel Grid.Row="0" Grid.Column="0" Margin="16, 0, 16, 0">
+                                        <TextBlock HorizontalAlignment="Left" Text="{Binding Key.Name}" FontSize="40"
+                                                   FontWeight="Bold" />
+                                        <Border HorizontalAlignment="Right" CornerRadius="16" Background="Azure"
+                                                BorderBrush="#005CFE" Padding="16" BorderThickness="1">
+                                            <TextBlock VerticalAlignment="Center" FontSize="20" Foreground="#005CFE"
+                                                       Text="{Binding Key.TestNames.Count, StringFormat='{}{0} Tests'}" />
+                                        </Border>
+                                    </Panel>
+
+                                    <ItemsControl Grid.Row="2" Grid.Column="0" ItemsSource="{Binding}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <UniformGrid Columns="3" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Classes="card">
+                                                    <lvc:CartesianChart ZoomMode="None" Background="White"
+                                                                        Foreground="White"
+                                                                        HorizontalAlignment="Stretch"
+                                                                        Height="{Binding Height}"
+                                                                        Series="{Binding Series}"
+                                                                        YAxes="{Binding YAxes}"
+                                                                        XAxes="{Binding XAxes}">
                                                         <lvc:CartesianChart.Title>
-                                                            <lvc:XamlDrawnLabelVisual TextSize="25" Padding="15" Paint="#000000">
-                                                                <lvc:XamlDrawnLabelVisual.Text>
-                                                                    <MultiBinding StringFormat="{}{0:0} - {1:0}">
-                                                                        <Binding Path="Test.Title" />
-                                                                        <Binding Path="Test.Description" />
-                                                                    </MultiBinding>
-                                                                </lvc:XamlDrawnLabelVisual.Text>
-                                                            </lvc:XamlDrawnLabelVisual>
+                                                            <lvc:XamlDrawnLabelVisual TextSize="25" Padding="15"
+                                                                    Paint="#000000" Text="{Binding Test.Title}" />
                                                         </lvc:CartesianChart.Title>
                                                     </lvc:CartesianChart>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </Border>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </Grid>
                             </Border>
                         </DataTemplate>

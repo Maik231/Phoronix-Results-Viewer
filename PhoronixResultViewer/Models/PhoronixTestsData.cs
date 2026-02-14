@@ -5,12 +5,14 @@ using LiveChartsCore;
 using LiveChartsCore.Kernel.Sketches;
 using LiveChartsCore.Measure;
 using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.Painting;
+using SkiaSharp;
 
 namespace PhoronixResultViewer.Models;
 
 public record CalculatedResults(Test Test, List<Result> Results)
 {
-    public int Height => Results.Count * 50 + 50;
+    public int Height => Results.Count * 50 + 100;
 
     public List<RowSeries<double>> Series =>
     [
@@ -29,8 +31,9 @@ public record CalculatedResults(Test Test, List<Result> Results)
     [
         new Axis
         {
-            Labels = Results.Select(r => r.System).ToList(),
+            Labels = Results.Select(r => r.System.Length < 18 ? r.System : r.System[..18] + "...").ToList(),
             MinStep = 1,
+            LabelsPaint = new SolidColorPaint(new SKColor(0, 0, 0)),
             ForceStepToMin = true
         }
     ];

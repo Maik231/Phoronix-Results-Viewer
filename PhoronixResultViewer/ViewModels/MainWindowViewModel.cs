@@ -32,6 +32,8 @@ public partial class MainWindowViewModel : ViewModelBase
     [Reactive] private List<CalculatedResults> _calculatedResults = [];
 
     [Reactive] private List<TestSuiteGroup> _groupedResults = [];
+
+    [ObservableAsProperty] private bool _hasSystems;
     
     public MainWindowViewModel(DialogService dialogService)
     {
@@ -54,6 +56,10 @@ public partial class MainWindowViewModel : ViewModelBase
             .RefCount();
             
         shared.AutoRefresh()
+            .Select(x => _systemsSource.Count > 0)
+            .ToProperty(this, x => x.HasSystems, out _hasSystemsHelper);
+        
+        shared.AutoRefresh(x => x.IsBase)
             .Where(x => ParsedResults.Count > 0 && x.Any(system => system is { Type: ChangeType.Item, Item.Current.IsBase: true }))
             .ToUnit()
             .InvokeCommand(CalculateResultsCommand);
@@ -142,7 +148,7 @@ public partial class MainWindowViewModel : ViewModelBase
         
         foreach (var system in Systems)
         {
-            if(!system.Include) continue;
+            if(system.Include == false && system.IsBase == false) continue;
             
             var averagePerformance = results.SelectMany(r => r.Results)
                 .Where(r => r.System == system.Name)
