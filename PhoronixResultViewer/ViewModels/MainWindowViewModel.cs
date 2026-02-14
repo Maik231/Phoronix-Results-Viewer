@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Reactive;
 using System.Reactive.Linq;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using DynamicData;
 using PhoronixResultViewer.Models;
 using PhoronixResultViewer.Services;
 using PhoronixResultViewer.Extensions;
@@ -16,117 +17,168 @@ namespace PhoronixResultViewer.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
-    private readonly DialogService _dialogService;
+    private readonly DialogService _dialogService; 
 
     [Reactive] private bool _excludeAvx512;
 
     [Reactive] private bool _onlyShowResultsPerSuite;
 
-    [Reactive] private List<TestResults> _parsedResults = new();
+    [Reactive] private List<TestResults> _parsedResults = [];
 
+    private readonly SourceList<TestSystem> _systemsSource = new();
+    
+    public ReadOnlyObservableCollection<TestSystem> Systems { get; private init => this.RaiseAndSetIfChanged(ref field, value); }
+    
     [Reactive] private List<CalculatedResults> _calculatedResults = [];
 
-    [Reactive] private List<IGrouping<TestSuites, CalculatedResults>> _groupedResults = [];
-
+    [Reactive] private List<TestSuiteGroup> _groupedResults = [];
+    
     public MainWindowViewModel(DialogService dialogService)
     {
-        this._dialogService = dialogService;
+        _dialogService = dialogService;
 
+        _systemsSource
+            .Connect()
+            .Bind(out var bound)
+            .Subscribe();
+        
+        Systems = bound;
+        
         this.WhenAnyValue(x => x.ParsedResults)
-            .Select(x => Unit.Default)
+            .Where(x => x.Count > 0)
+            .ToUnit()
             .InvokeCommand(CalculateResultsCommand);
 
+        var shared = _systemsSource
+            .Connect()
+            .RefCount();
+            
+        shared.AutoRefresh()
+            .Where(x => ParsedResults.Count > 0 && x.Any(system => system is { Type: ChangeType.Item, Item.Current.IsBase: true }))
+            .ToUnit()
+            .InvokeCommand(CalculateResultsCommand);
+
+        shared.AutoRefresh(x => x.Include)
+            .Where(x => CalculatedResults.Count > 0)
+            .ToUnit()
+            .InvokeCommand(FilterResultsCommand);
+            
+        
         this.WhenAnyValue(x => x.CalculatedResults, x => x.ExcludeAvx512, x => x.OnlyShowResultsPerSuite)
-            .Select(x => Unit.Default)
+            .Where(x => x.Item1.Count > 0)
+            .ToUnit()
             .InvokeCommand(FilterResultsCommand);
     }
     
-
     [ReactiveCommand]
     private async Task FilterResults()
     {
-        var filterQuery = CalculatedResults.AsQueryable();
-
-        if (ExcludeAvx512)
+        try
         {
-            filterQuery = filterQuery.Where(t => OpenbenchmarkingLists.AVX512benchmarkList.Any(avx => t.Test.Identifier.ToLowerInvariant().Contains(avx)) == false);
-        }
+            var filterQuery = CalculatedResults.AsEnumerable();
 
-        var filteredResults = filterQuery.ToList();
-
-        var testSuites = await OpenbenchmarkingLists.GetTestSuites();
-
-        var groupedResults = new List<IGrouping<TestSuites, CalculatedResults>>();
-
-        foreach (var suite in testSuites)
-        {
-            var testResults =
-                filteredResults.Where(f => suite.TestNames.Any(testName => f.Test.Identifier.Contains(testName)))
-                    .ToList();
-            
-            if(testResults.Count == 0) continue;
-            
-            groupedResults.Add(new Group(suite, testResults));
-        }
-
-        var uiResults = new List<IGrouping<TestSuites, CalculatedResults>>();
-
-        var systems = _parsedResults.DistinctBy(result => result.Result.System).ToList();
-        
-        foreach(var group in groupedResults)
-        {
-            double? baseValue = null;
-            
-            List<Result> performanceResults = new();
-            
-            List<Result> powerResults = new();
-            
-            List<Result> performancePerWattResults = new();
-        
-            foreach (var result in systems)
+            if (ExcludeAvx512)
             {
-                var averagePerformance = group.SelectMany(r => r.Results)
-                    .Where(r => r.System == result.Result.System)
-                    .Geomean(r => r.Performance);
+                filterQuery = filterQuery.Where(t => OpenbenchmarkingLists.AVX512benchmarkList.Any(avx => t.Test.Identifier.ToLowerInvariant().Contains(avx)) == false);
+            }
+        
+            filterQuery = filterQuery.Select(c => new CalculatedResults(
+                c.Test, 
+                c.Results.Where(r =>
+                    {
+                        var foundSystem = Systems.First(system => r.System == system.Name);
+
+                        return foundSystem.Include || foundSystem.IsBase;
+                    }
+                ).ToList()));
+
+            var filteredResults = filterQuery.ToList();
+
+            var testSuites = await OpenbenchmarkingLists.GetTestSuites();
+        
+            var groupedResults = new List<TestSuiteGroup>();
+        
+            foreach (var suite in testSuites)
+            {
+                var testResults =
+                    filteredResults.Where(f => suite.TestNames.Any(testName => f.Test.Identifier.Contains(testName)))
+                        .ToList();
+            
+                if(testResults.Count == 0) continue;
+            
+                var newResults = CalculatedTestSuiteGroupResult(suite, testResults, _onlyShowResultsPerSuite);
+
+                groupedResults.Add(newResults);
+            }
+        
+            if (groupedResults.Count > 0)
+            {
+                var overallResults = CalculatedTestSuiteGroupResult(new TestSuite("Overall results",[]), filteredResults, true); 
+            
+                groupedResults.Add(overallResults);
+            }
+        
+            GroupedResults = groupedResults;
+        }
+        catch (Exception ex)
+        {
+            // ignored
+        }
+    }
+
+    private TestSuiteGroup CalculatedTestSuiteGroupResult(TestSuite testSuite, List<CalculatedResults> results, bool onlyShowResultsPerSuite)
+    {
+        var baseSystem = Systems.First(s => s.IsBase);
+        
+        double? baseValue = results.SelectMany(r => r.Results)
+            .Where(r => r.System == baseSystem.Name)
+            .Geomean(r => r.Performance);
+        
+        List<Result> performanceResults = [];
+            
+        List<Result> powerResults = [];
+            
+        List<Result> performancePerWattResults = [];
+        
+        foreach (var system in Systems)
+        {
+            if(!system.Include) continue;
+            
+            var averagePerformance = results.SelectMany(r => r.Results)
+                .Where(r => r.System == system.Name)
+                .Geomean(r => r.Performance);
                 
-                var powerConsumptionList = group.SelectMany(r => r.Results)
-                    .Where(r => r.System == result.Result.System && r.PowerConsumption is not null)
-                    .ToList();
+            var powerConsumptionList = results.SelectMany(r => r.Results)
+                .Where(r => r.System == system.Name && r.PowerConsumption is not null)
+                .ToList();
+            
+            double? averagePowerConsumption = powerConsumptionList.Count > 0 ? powerConsumptionList.Average(r => r.PowerConsumption!.Value) : null;
                 
+            performanceResults.Add(new Result(averagePerformance / baseValue.Value, null, system.Name));
                 
-                double? averagePowerConsumption= powerConsumptionList.Count > 0 ? powerConsumptionList.Average(r => r.PowerConsumption!.Value) : null;
-                
-                baseValue ??= averagePerformance;
-                
-                performanceResults.Add(result.Result with { Performance = averagePerformance / baseValue.Value });
-                
-                if (averagePowerConsumption is not null)
-                {
-                    powerResults.Add(result.Result with { Performance = averagePowerConsumption.Value });
+            if (averagePowerConsumption is not null)
+            {
+                powerResults.Add(new Result(averagePowerConsumption.Value, null, system.Name));
                     
-                    performancePerWattResults.Add(result.Result with { Performance = ( averagePerformance / baseValue.Value) / averagePowerConsumption.Value });
-                }
+                performancePerWattResults.Add(new Result((averagePerformance / baseValue.Value * 100) / averagePowerConsumption.Value, null, system.Name));
             }
-
-
-            var baseGroup = group;
-            
-            if (OnlyShowResultsPerSuite)
-            {
-                baseGroup = new Group(group.Key, []);
-            }
-
-            var newResults = baseGroup
-                .Append(new CalculatedResults(new Test("Geometric mean", "", group.Key.Name, PerformanceClass.HigherIsBetter, "%"),
-                    performanceResults, PerformanceClass.HigherIsBetter))
-                .Append(new CalculatedResults(new Test("Average power consumption", "", group.Key.Name, PerformanceClass.HigherIsBetter, "Watt"), powerResults,
-                    PerformanceClass.HigherIsBetter))
-                .Append(new CalculatedResults(new Test("Performance per Watt", "", group.Key.Name, PerformanceClass.HigherIsBetter, "Per/Watt"), performancePerWattResults, PerformanceClass.HigherIsBetter));
-            
-            uiResults.Add(new Group(group.Key, newResults.ToList()));
         }
 
-        GroupedResults = uiResults;
+
+        var baseGroup = results;
+
+        if (onlyShowResultsPerSuite)
+        {
+            baseGroup = [];
+        }
+
+        var newResults = baseGroup
+            .Append(new CalculatedResults(new Test("Geometric mean", "", testSuite.Name, PerformanceClass.HigherIsBetter, "%"),
+                performanceResults))
+            .Append(new CalculatedResults(new Test("Average power consumption", "", testSuite.Name, PerformanceClass.HigherIsBetter, "Watt"), powerResults))
+            .Append(new CalculatedResults(new Test("Performance per Watt", "", testSuite.Name, PerformanceClass.HigherIsBetter, "Per/Watt"), performancePerWattResults));
+        
+        return new TestSuiteGroup(testSuite, newResults.ToList(), results.Count);
     }
 
     [ReactiveCommand]
@@ -145,32 +197,30 @@ public partial class MainWindowViewModel : ViewModelBase
             foreach (var uniqueTest in uniqueTests)
             {
                 var performance = new List<Result>();
-
-                double? baseValue = null;
-
-                if (uniqueTest.Test.Description == "Model: Face Detection FP16-INT8 - Device: CPU")
-                {
-                    
-                }
                 
-                foreach (var testResult in _parsedResults.Where(t => t.Test == uniqueTest.Test).ToList())
+                var testResults = _parsedResults.Where(t => t.Test == uniqueTest.Test).ToList();
+                
+                var baseSystem = Systems.First(s => s.IsBase);
+                
+                var baseValue = testResults.FirstOrDefault(t => t.Result.System == baseSystem.Name)?.Result.Performance;
+                
+                foreach (var testResult in testResults)
                 {
                     baseValue ??= testResult.Result.Performance;
-
+                    
                     if (uniqueTest.Test.PerformanceClass == PerformanceClass.HigherIsBetter)
                     {
                         performance.Add(testResult.Result with { Performance = testResult.Result.Performance / baseValue.Value });
                     }
                     else
                     {
-                        performance.Add(testResult.Result with { Performance = baseValue.Value / testResult.Result.Performance });
+                        performance.Add(testResult.Result with { Performance = baseValue.Value / testResult.Result.Performance});
                     }
                 }
 
                 performance = performance.Distinct().ToList();
 
-                calculatedResults.Add(new CalculatedResults(uniqueTest.Test, performance,
-                    uniqueTest.Test.PerformanceClass));
+                calculatedResults.Add(new CalculatedResults(uniqueTest.Test, performance));
             }
             
             CalculatedResults = calculatedResults;
@@ -192,6 +242,16 @@ public partial class MainWindowViewModel : ViewModelBase
 
             var jsonObject = JsonNode.Parse(content);
 
+            var systems = jsonObject["systems"].AsObject().Select(s => new TestSystem(s.Key, false, true)).ToList();
+
+            systems[0].IsBase = true;
+
+            _systemsSource.Edit(list =>
+            {
+                list.Clear();
+                list.AddRange(systems);
+            });
+            
             List<TestResults> newResults = new();
 
             foreach (var node in jsonObject["results"].AsObject())
@@ -207,7 +267,7 @@ public partial class MainWindowViewModel : ViewModelBase
                     HandlePowerConsumptionNode(node, newResults);
                 }
             }
-
+ 
             ParsedResults = newResults;
         }
         catch (Exception ex)
@@ -228,7 +288,12 @@ public partial class MainWindowViewModel : ViewModelBase
                 .Average();
 
             var index = newResults.FindIndex(x => x.Id == node.Value["parent"].GetValue<string>() && x.Result.System == system.Key);
-
+            
+            if(index == -1)
+            {
+                return;
+            }
+            
             newResults[index] = newResults[index] with {Result = new Result(newResults[index].Result.Performance, powerConsumption, newResults[index].Result.System)}; 
         }
     }

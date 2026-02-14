@@ -10,9 +10,9 @@ namespace PhoronixResultViewer.Models;
 
 public static class OpenbenchmarkingLists
 {
-    private static List<TestSuites> _testSuites = [];
+    private static List<TestSuite> _testSuites = [];
     
-    public static async Task<List<TestSuites>> GetTestSuites()
+    public static async Task<List<TestSuite>> GetTestSuites()
     {
         if (_testSuites.Count > 0)
         {
@@ -23,7 +23,7 @@ public static class OpenbenchmarkingLists
         {
             var json = await File.ReadAllTextAsync("testSuites.json");
 
-            _testSuites = JsonSerializer.Deserialize<List<TestSuites>>(json);
+            _testSuites = JsonSerializer.Deserialize<List<TestSuite>>(json);
             
             return _testSuites;
         }
@@ -39,7 +39,9 @@ public static class OpenbenchmarkingLists
     
         var document = parser.ParseDocument(html);
         var cells = document.QuerySelectorAll("div.row div.col-sm-6 h4 a");
-        var suitePaths = cells.Select(m => m.GetAttribute("href"));
+        var suitePaths = cells.Select(m => m.GetAttribute("href")).ToList();
+        
+        suitePaths.Add("/suite/pts/single-threaded");
         
         foreach (var suitePath in suitePaths)
         {
@@ -53,9 +55,9 @@ public static class OpenbenchmarkingLists
         
             var suiteName = document.QuerySelector("div.col-sm-9.col-md-10.main h1").TextContent;
         
-            var suiteTests = document.QuerySelectorAll("ul li h3 a").Select(i => i.GetAttribute("href").Split('&')[0].Split('/', 3)[2]);
+            var suiteTests = document.QuerySelectorAll("ul li h3 a").Select(i => i.GetAttribute("href").Split('&')[0].Split('/')[3]);
         
-            _testSuites.Add(new TestSuites(suiteName, suiteTests.ToList()));
+            _testSuites.Add(new TestSuite(suiteName, suiteTests.ToList()));
         }
     
         await File.WriteAllTextAsync("testSuites.json", JsonSerializer.Serialize(_testSuites));

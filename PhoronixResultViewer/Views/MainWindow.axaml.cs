@@ -1,9 +1,14 @@
 using System;
 using System.Reactive.Disposables.Fluent;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Markup.Xaml;
+using Avalonia.VisualTree;
 using PhoronixResultViewer.ViewModels;
 using ReactiveUI;
 using ReactiveUI.Avalonia;
+using Vector = System.Numerics.Vector;
 
 namespace PhoronixResultViewer.Views;
 

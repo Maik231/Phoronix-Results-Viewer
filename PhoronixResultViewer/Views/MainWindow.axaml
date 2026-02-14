@@ -1,80 +1,126 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:PhoronixResultViewer.ViewModels"
-        xmlns:local="using:PhoronixResultViewer.Converters"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+<Window xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PhoronixResultViewer.ViewModels" xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
-        xmlns:skiaSharpView="clr-namespace:LiveChartsCore.SkiaSharpView;assembly=LiveChartsCore.SkiaSharpView"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-        x:Class="PhoronixResultViewer.Views.MainWindow"
-        x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="PhoronixResultViewer">
-
+        xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia" mc:Ignorable="d" d:DesignWidth="1920"
+        d:DesignHeight="1080" x:Class="PhoronixResultViewer.Views.MainWindow" x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico" Title="PhoronixResultViewer"
+        RequestedThemeVariant="Light">
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
         <vm:MainWindowViewModel />
     </Design.DataContext>
 
-    <Window.Resources>
-        <local:ResultToDoubleConverter x:Key="ResultToDoubleConverter" />
-        <local:ResultToStringConverter x:Key="ResultToStringConverter" />
-    </Window.Resources>
+    <Window.Styles>
+        <Styles>
+            <Style Selector="Border.card">
+                <Setter Property="CornerRadius" Value="16" />
+                <Setter Property="Padding" Value="30" />
+                <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeBrush}" />
+                <Setter Property="BoxShadow" Value="0 0 30 0 DarkGray" />
+            </Style>
+        </Styles>
+    </Window.Styles>
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="100"></RowDefinition>
-            <RowDefinition Height="*"></RowDefinition>
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"></ColumnDefinition>
-        </Grid.ColumnDefinitions>
-        
-        <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal">
-            <Button Command="{Binding ImportResultsCommand}">Import result file</Button>
-            <CheckBox IsChecked="{Binding ExcludeAvx512}">Exclude AVX512</CheckBox>
-            <CheckBox IsChecked="{Binding OnlyShowResultsPerSuite}">Only show results per suite</CheckBox>
-        </StackPanel>
-        <ScrollViewer Grid.Row="1" Grid.Column="0" FontSize="20">
-            <ItemsControl ItemsSource="{Binding GroupedResults}">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border BorderBrush="Gray" BorderThickness="1" Padding="5" Margin="5" CornerRadius="5">
-                            <StackPanel Orientation="Vertical">
-                                <TextBlock Text="{Binding Key.Name}" />
-                                <Border BorderBrush="Gray" BorderThickness="1" Padding="5" Margin="5"
-                                        CornerRadius="5">
-                                    <ItemsControl ItemsSource="{Binding}">
-                                        <ItemsControl.ItemTemplate>
-                                            <DataTemplate>
-                                                <StackPanel Orientation="Vertical">
-                                                    <TextBlock>
-                                                        <TextBlock.Text>
-                                                            <MultiBinding StringFormat=" {0:0} - {1:0}">
-                                                                <Binding Path="Test.Title" />
-                                                                <Binding Path="Test.Description" />
-                                                            </MultiBinding>
-                                                        </TextBlock.Text>
-                                                    </TextBlock>
-                                                    <Border BorderBrush="Gray" BorderThickness="1" Padding="5"
-                                                            Margin="5"
-                                                            CornerRadius="5">
-                                                        <lvc:CartesianChart Width="600" Height="{Binding Height}" LegendPosition="Left" Series="{Binding Series}" YAxes="{Binding YAxes}" XAxes="{Binding XAxes}">
-                                                        </lvc:CartesianChart>
-                                                    </Border>
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                    </ItemsControl>
-                                </Border>
-                            </StackPanel>
-                        </Border>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
-        </ScrollViewer>
+    <Grid ColumnDefinitions="*" RowDefinitions="auto,*">
+        <Border Classes="card" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch" Margin="30">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Phoronix Result Viewer" />
+
+                <CheckBox IsEnabled="{Binding !FilterResultsCommand.IsExecuting}"
+                          IsChecked="{Binding ExcludeAvx512}">
+                    Exclude AVX512
+                </CheckBox>
+                <CheckBox IsEnabled="{Binding !FilterResultsCommand.IsExecuting}"
+                          IsChecked="{Binding OnlyShowResultsPerSuite}">
+                    Only show results per suite
+                </CheckBox>
+                <Button Command="{Binding ImportResultsCommand}">Import result file</Button>
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto,*" RowDefinitions="*" Margin="30, 0, 30, 30">
+            <Border Classes="card" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch">
+                <StackPanel Orientation="Vertical">
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock Text="Base system for relative performance" />
+                        <ItemsControl IsEnabled="{Binding !CalculateResultsCommand.IsExecuting}"
+                                      ItemsSource="{Binding Systems}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton IsChecked="{Binding IsBase}" GroupName="System">
+                                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                        </RadioButton>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock Text="Included Systems" />
+                        <ItemsControl IsEnabled="{Binding !FilterResultsCommand.IsExecuting}"
+                                      ItemsSource="{Binding Systems}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding Include}">
+                                        <TextBlock Text="{Binding Name}" />
+                                    </CheckBox>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+            <ScrollViewer Grid.Row="0" Grid.Column="1">
+                <ItemsControl ItemsSource="{Binding GroupedResults}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <VirtualizingStackPanel CacheLength="1"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Classes="card" Margin="30, 0, 30, 30">
+                                <Grid RowDefinitions="50, 20, auto" ColumnDefinitions="*">
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding Key.Name}" FontSize="40" FontWeight="Bold"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding Key.TestNames.Count, StringFormat='{}{0} Tests'}"/>
+                                    <Border Grid.Row="2" Grid.Column="0" Classes="card">
+                                        <ItemsControl ItemsSource="{Binding}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <lvc:CartesianChart ZoomMode="None" Background="White" Foreground="White"
+                                                            HorizontalAlignment="Left"
+                                                            Width="600" Height="{Binding Height}"
+                                                            Series="{Binding Series}"
+                                                            YAxes="{Binding YAxes}"
+                                                            XAxes="{Binding XAxes}" >
+                                                        <lvc:CartesianChart.Title>
+                                                            <lvc:XamlDrawnLabelVisual TextSize="25" Padding="15" Paint="#000000">
+                                                                <lvc:XamlDrawnLabelVisual.Text>
+                                                                    <MultiBinding StringFormat="{}{0:0} - {1:0}">
+                                                                        <Binding Path="Test.Title" />
+                                                                        <Binding Path="Test.Description" />
+                                                                    </MultiBinding>
+                                                                </lvc:XamlDrawnLabelVisual.Text>
+                                                            </lvc:XamlDrawnLabelVisual>
+                                                        </lvc:CartesianChart.Title>
+                                                    </lvc:CartesianChart>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Grid>
     </Grid>
-
 </Window>
