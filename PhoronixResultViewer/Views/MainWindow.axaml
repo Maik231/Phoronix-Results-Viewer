@@ -3,8 +3,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia" mc:Ignorable="d" d:DesignWidth="1920"
         d:DesignHeight="1080" x:Class="PhoronixResultViewer.Views.MainWindow" x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico" Title="PhoronixResultViewer"
-        RequestedThemeVariant="Light">
+        Icon="/Assets/avalonia-logo.ico" Title="PhoronixResultViewer">
     <Design.DataContext>
         <vm:MainWindowViewModel />
     </Design.DataContext>
@@ -25,58 +24,58 @@
 
     <Grid ColumnDefinitions="*" RowDefinitions="auto,*">
         <Border Classes="card" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch">
-            <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBlock Text="Phoronix Result Viewer" VerticalAlignment="Center" FontSize="30" FontWeight="Bold" />
-
-                <CheckBox IsEnabled="{Binding !FilterResultsCommand.IsExecuting}"
-                          IsChecked="{Binding ExcludeAvx512}">
-                    Exclude AVX512
-                </CheckBox>
-                <CheckBox IsEnabled="{Binding !FilterResultsCommand.IsExecuting}"
-                          IsChecked="{Binding OnlyShowResultsPerSuite}">
-                    Only show results per suite
-                </CheckBox>
-                <Button Command="{Binding ImportResultsCommand}">Import result file</Button>
-            </StackPanel>
+            <Grid ColumnDefinitions="*, auto" RowDefinitions="auto">
+                <TextBlock Grid.Column="0" Grid.Row="0" Text="Phoronix Result Viewer" VerticalAlignment="Center" FontSize="30" FontWeight="Bold" />
+                
+                <Button Grid.Row="0" Grid.Column="1" HorizontalAlignment="Left" FontSize="20" Command="{Binding ImportResultsCommand}">Import result file</Button>
+            </Grid>
         </Border>
 
         <Grid Grid.Row="1" Grid.Column="0" ColumnDefinitions="Auto,*" RowDefinitions="*">
             <Border Classes="card" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch">
-                <ScrollViewer>
-                    <StackPanel Width="400" Orientation="Vertical" Spacing="20">
-                        <TextBlock Text="Configurations" HorizontalAlignment="Center" FontSize="30" FontWeight="Bold" />
-                        <StackPanel Orientation="Vertical" IsVisible="{Binding HasSystems}">
-                            <TextBlock Text="Base system for relative performance" FontSize="20" FontWeight="SemiBold"
-                                       HorizontalAlignment="Center" />
-                            <ItemsControl IsEnabled="{Binding !CalculateResultsCommand.IsExecuting}"
-                                          ItemsSource="{Binding Systems}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <StackPanel Orientation="Horizontal">
-                                            <RadioButton IsChecked="{Binding IsBase}" GroupName="System">
-                                                <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
-                                            </RadioButton>
-                                        </StackPanel>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
+                <Grid ColumnDefinitions="*" ColumnSpacing="20" RowDefinitions="Auto, *">
+                    <TextBlock Grid.Row="0" Grid.Column="" Text="Configurations" HorizontalAlignment="Center" FontSize="30" FontWeight="Bold" />
+                    <ScrollViewer Grid.Row="1" Grid.Column="0">
+                        <StackPanel Width="400" Orientation="Vertical" Spacing="20">
+                            <StackPanel Orientation="Vertical">
+                                <CheckBox IsEnabled="{Binding !FilterResultsCommand.IsExecuting}"
+                                          IsChecked="{Binding ExcludeAvx512}">
+                                    Exclude AVX512
+                                </CheckBox>
+                            </StackPanel>
+                            <StackPanel Orientation="Vertical" IsVisible="{Binding HasSystems}">
+                                <TextBlock Text="Base system for relative performance" FontSize="20" FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" />
+                                <ItemsControl IsEnabled="{Binding !CalculateResultsCommand.IsExecuting}"
+                                              ItemsSource="{Binding Systems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <RadioButton IsChecked="{Binding IsBase}" GroupName="System">
+                                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                                                </RadioButton>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                            <StackPanel Orientation="Vertical" IsVisible="{Binding HasSystems}">
+                                <TextBlock Text="Included Systems" FontSize="20" FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" />
+                                <ItemsControl IsEnabled="{Binding !FilterResultsCommand.IsExecuting}"
+                                              ItemsSource="{Binding Systems}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox IsChecked="{Binding Include}">
+                                                <TextBlock Text="{Binding Name}" />
+                                            </CheckBox>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
                         </StackPanel>
-                        <StackPanel Orientation="Vertical" IsVisible="{Binding HasSystems}">
-                            <TextBlock Text="Included Systems" FontSize="20" FontWeight="SemiBold"
-                                       HorizontalAlignment="Center" />
-                            <ItemsControl IsEnabled="{Binding !FilterResultsCommand.IsExecuting}"
-                                          ItemsSource="{Binding Systems}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <CheckBox IsChecked="{Binding Include}">
-                                            <TextBlock Text="{Binding Name}" />
-                                        </CheckBox>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
+                    </ScrollViewer>
+                </Grid>
             </Border>
             <ScrollViewer Grid.Row="0" Grid.Column="1">
                 <ItemsControl ItemsSource="{Binding GroupedResults}">
@@ -90,16 +89,26 @@
                             <Border Classes="card">
                                 <Grid RowDefinitions="50, 20, auto" ColumnDefinitions="*">
                                     <Panel Grid.Row="0" Grid.Column="0" Margin="16, 0, 16, 0">
-                                        <TextBlock HorizontalAlignment="Left" Text="{Binding Key.Name}" FontSize="40"
-                                                   FontWeight="Bold" />
+                                        <Button HorizontalAlignment="Left"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Padding="0"
+                                                Command="{ReflectionBinding DataContext.OpenSuiteDetailsCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding Key}">
+                                            <TextBlock Text="{Binding Key.Name}"
+                                                       FontSize="40"
+                                                       FontWeight="Bold"
+                                                       TextDecorations="Underline"
+                                                       Cursor="Hand"/>
+                                        </Button>
                                         <Border HorizontalAlignment="Right" CornerRadius="16" Background="Azure"
                                                 BorderBrush="#005CFE" Padding="16" BorderThickness="1">
                                             <TextBlock VerticalAlignment="Center" FontSize="20" Foreground="#005CFE"
-                                                       Text="{Binding Key.TestNames.Count, StringFormat='{}{0} Tests'}" />
+                                                       Text="{Binding TotalTests, StringFormat='{}{0} Tests'}" />
                                         </Border>
                                     </Panel>
 
-                                    <ItemsControl Grid.Row="2" Grid.Column="0" ItemsSource="{Binding}">
+                                    <ItemsControl Grid.Row="2" Grid.Column="0" ItemsSource="{Binding Results}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
                                                 <UniformGrid Columns="3" />
@@ -108,16 +117,14 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <Border Classes="card">
-                                                    <lvc:CartesianChart ZoomMode="None" Background="White"
-                                                                        Foreground="White"
+                                                    <lvc:CartesianChart ZoomMode="None" Background="{DynamicResource CardBackgroundBrush}"
                                                                         HorizontalAlignment="Stretch"
                                                                         Height="{Binding Height}"
                                                                         Series="{Binding Series}"
                                                                         YAxes="{Binding YAxes}"
                                                                         XAxes="{Binding XAxes}">
                                                         <lvc:CartesianChart.Title>
-                                                            <lvc:XamlDrawnLabelVisual TextSize="25" Padding="15"
-                                                                    Paint="#000000" Text="{Binding Test.Title}" />
+                                                            <lvc:XamlDrawnLabelVisual TextSize="25" Padding="15" Text="{Binding Test.Title}" Paint="#ffffff" />
                                                         </lvc:CartesianChart.Title>
                                                     </lvc:CartesianChart>
                                                 </Border>

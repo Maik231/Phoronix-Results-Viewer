@@ -18,11 +18,11 @@ namespace PhoronixResultViewer.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly DialogService _dialogService; 
+    
+    private readonly WindowService _windowService;
 
     [Reactive] private bool _excludeAvx512;
-
-    [Reactive] private bool _onlyShowResultsPerSuite;
-
+    
     [Reactive] private List<TestResults> _parsedResults = [];
 
     private readonly SourceList<TestSystem> _systemsSource = new();
@@ -34,10 +34,11 @@ public partial class MainWindowViewModel : ViewModelBase
     [Reactive] private List<TestSuiteGroup> _groupedResults = [];
 
     [ObservableAsProperty] private bool _hasSystems;
-    
-    public MainWindowViewModel(DialogService dialogService)
+
+    public MainWindowViewModel(DialogService dialogService, WindowService windowService)
     {
         _dialogService = dialogService;
+        _windowService = windowService;
 
         _systemsSource
             .Connect()
@@ -45,11 +46,6 @@ public partial class MainWindowViewModel : ViewModelBase
             .Subscribe();
         
         Systems = bound;
-        
-        this.WhenAnyValue(x => x.ParsedResults)
-            .Where(x => x.Count > 0)
-            .ToUnit()
-            .InvokeCommand(CalculateResultsCommand);
 
         var shared = _systemsSource
             .Connect()
@@ -68,12 +64,24 @@ public partial class MainWindowViewModel : ViewModelBase
             .Where(x => CalculatedResults.Count > 0)
             .ToUnit()
             .InvokeCommand(FilterResultsCommand);
-            
         
-        this.WhenAnyValue(x => x.CalculatedResults, x => x.ExcludeAvx512, x => x.OnlyShowResultsPerSuite)
+        this.WhenAnyValue(x => x.ParsedResults)
+            .Where(x => x.Count > 0)
+            .ToUnit()
+            .InvokeCommand(CalculateResultsCommand);
+        
+        this.WhenAnyValue(x => x.CalculatedResults, x => x.ExcludeAvx512)
             .Where(x => x.Item1.Count > 0)
             .ToUnit()
             .InvokeCommand(FilterResultsCommand);
+    }
+
+    [ReactiveCommand]
+    private void OpenSuiteDetails(TestSuite testSuite)
+    {
+        var tests = CalculatedResults.Where(t => testSuite.TestNames.Any(testName => t.Test.Identifier.Contains(testName))).ToList();
+        
+        _windowService.ShowTestSuiteWindow(new TestSuiteGroup(testSuite, tests, tests.Count));
     }
     
     [ReactiveCommand]
@@ -85,7 +93,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
             if (ExcludeAvx512)
             {
-                filterQuery = filterQuery.Where(t => OpenbenchmarkingLists.AVX512benchmarkList.Any(avx => t.Test.Identifier.ToLowerInvariant().Contains(avx)) == false);
+                filterQuery = filterQuery.Where(t => OpenbenchmarkingLists.AVX512benchmarkList.Any(avx => t.Test.Identifier.Contains(avx)) == false);
             }
         
             filterQuery = filterQuery.Select(c => new CalculatedResults(
@@ -103,7 +111,7 @@ public partial class MainWindowViewModel : ViewModelBase
             var testSuites = await OpenbenchmarkingLists.GetTestSuites();
         
             var groupedResults = new List<TestSuiteGroup>();
-        
+            
             foreach (var suite in testSuites)
             {
                 var testResults =
@@ -112,14 +120,14 @@ public partial class MainWindowViewModel : ViewModelBase
             
                 if(testResults.Count == 0) continue;
             
-                var newResults = CalculatedTestSuiteGroupResult(suite, testResults, _onlyShowResultsPerSuite);
+                var newResults = CalculatedTestSuiteGroupResult(suite, testResults);
 
                 groupedResults.Add(newResults);
             }
         
             if (groupedResults.Count > 0)
             {
-                var overallResults = CalculatedTestSuiteGroupResult(new TestSuite("Overall results",[]), filteredResults, true); 
+                var overallResults = CalculatedTestSuiteGroupResult(new TestSuite("Overall results",[]), filteredResults); 
             
                 groupedResults.Add(overallResults);
             }
@@ -132,59 +140,48 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private TestSuiteGroup CalculatedTestSuiteGroupResult(TestSuite testSuite, List<CalculatedResults> results, bool onlyShowResultsPerSuite)
+    private TestSuiteGroup CalculatedTestSuiteGroupResult(TestSuite testSuite, List<CalculatedResults> results)
     {
         var baseSystem = Systems.First(s => s.IsBase);
-        
-        double? baseValue = results.SelectMany(r => r.Results)
-            .Where(r => r.System == baseSystem.Name)
-            .Geomean(r => r.Performance);
         
         List<Result> performanceResults = [];
             
         List<Result> powerResults = [];
             
         List<Result> performancePerWattResults = [];
+
+        var groups = results.SelectMany(r => r.Results)
+            .GroupBy(r => r.System)
+            .ToList();
         
-        foreach (var system in Systems)
+        double? baseValue = groups.First(r => r.Key == baseSystem.Name)
+            .Geomean(r => r.Performance);
+        
+        foreach (var group in groups)
         {
-            if(system.Include == false && system.IsBase == false) continue;
-            
-            var averagePerformance = results.SelectMany(r => r.Results)
-                .Where(r => r.System == system.Name)
+            var averagePerformance = group
                 .Geomean(r => r.Performance);
+
+            var averagePowerConsumption = group.Average(r => r.PowerConsumption ?? 0);
                 
-            var powerConsumptionList = results.SelectMany(r => r.Results)
-                .Where(r => r.System == system.Name && r.PowerConsumption is not null)
-                .ToList();
-            
-            double? averagePowerConsumption = powerConsumptionList.Count > 0 ? powerConsumptionList.Average(r => r.PowerConsumption!.Value) : null;
+            performanceResults.Add(new Result(averagePerformance / baseValue.Value, null, group.Key));
                 
-            performanceResults.Add(new Result(averagePerformance / baseValue.Value, null, system.Name));
-                
-            if (averagePowerConsumption is not null)
+            if (averagePowerConsumption != 0)
             {
-                powerResults.Add(new Result(averagePowerConsumption.Value, null, system.Name));
+                powerResults.Add(new Result(averagePowerConsumption, null, group.Key));
                     
-                performancePerWattResults.Add(new Result((averagePerformance / baseValue.Value * 100) / averagePowerConsumption.Value, null, system.Name));
+                performancePerWattResults.Add(new Result((averagePerformance / baseValue.Value * 100) / averagePowerConsumption, null, group.Key));
             }
         }
 
-
-        var baseGroup = results;
-
-        if (onlyShowResultsPerSuite)
-        {
-            baseGroup = [];
-        }
-
-        var newResults = baseGroup
-            .Append(new CalculatedResults(new Test("Geometric mean", "", testSuite.Name, PerformanceClass.HigherIsBetter, "%"),
-                performanceResults))
-            .Append(new CalculatedResults(new Test("Average power consumption", "", testSuite.Name, PerformanceClass.HigherIsBetter, "Watt"), powerResults))
-            .Append(new CalculatedResults(new Test("Performance per Watt", "", testSuite.Name, PerformanceClass.HigherIsBetter, "Per/Watt"), performancePerWattResults));
+        List<CalculatedResults> newResults =
+        [
+            new (new Test("Geometric mean", "", testSuite.Name, PerformanceClass.HigherIsBetter, "%"), performanceResults),
+            new (new Test("Average power consumption", "", testSuite.Name, PerformanceClass.HigherIsBetter, "Watt"), powerResults),
+            new (new Test("Performance per Watt", "", testSuite.Name, PerformanceClass.HigherIsBetter, "Per/Watt"), performancePerWattResults),
+        ];
         
-        return new TestSuiteGroup(testSuite, newResults.ToList(), results.Count);
+        return new TestSuiteGroup(testSuite, newResults, results.Count);
     }
 
     [ReactiveCommand]
@@ -200,27 +197,30 @@ public partial class MainWindowViewModel : ViewModelBase
 
             var calculatedResults = new List<CalculatedResults>();
             
+            var baseSystem = Systems.First(s => s.IsBase);
+            
             foreach (var uniqueTest in uniqueTests)
             {
                 var performance = new List<Result>();
                 
                 var testResults = _parsedResults.Where(t => t.Test == uniqueTest.Test).ToList();
                 
-                var baseSystem = Systems.First(s => s.IsBase);
-                
-                var baseValue = testResults.FirstOrDefault(t => t.Result.System == baseSystem.Name)?.Result.Performance;
+                double baseValue = testResults.FirstOrDefault(t => t.Result.System == baseSystem.Name).Result.Performance;
                 
                 foreach (var testResult in testResults)
                 {
-                    baseValue ??= testResult.Result.Performance;
+                    if (baseValue == 0)
+                    {
+                        baseValue = testResult.Result.Performance;                        
+                    }
                     
                     if (uniqueTest.Test.PerformanceClass == PerformanceClass.HigherIsBetter)
                     {
-                        performance.Add(testResult.Result with { Performance = testResult.Result.Performance / baseValue.Value });
+                        performance.Add(testResult.Result with { Performance = testResult.Result.Performance / baseValue });
                     }
                     else
                     {
-                        performance.Add(testResult.Result with { Performance = baseValue.Value / testResult.Result.Performance});
+                        performance.Add(testResult.Result with { Performance = baseValue / testResult.Result.Performance});
                     }
                 }
 
@@ -293,6 +293,11 @@ public partial class MainWindowViewModel : ViewModelBase
                 .Select(double.Parse)
                 .Average();
 
+            if (node.Value["parent"] is null)
+            {
+                return;
+            }
+            
             var index = newResults.FindIndex(x => x.Id == node.Value["parent"].GetValue<string>() && x.Result.System == system.Key);
             
             if(index == -1)
@@ -304,8 +309,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private static void HandlePerformanceNode(KeyValuePair<string, JsonNode?> node, List<TestResults> newResults,
-        JsonNode identifier)
+    private static void HandlePerformanceNode(KeyValuePair<string, JsonNode?> node, List<TestResults> newResults, JsonNode identifier)
     {
         var proportion = node.Value["proportion"];
 

@@ -3,6 +3,7 @@ using ReactiveUI;
 
 namespace PhoronixResultViewer.ViewModels;
 
-public abstract class ViewModelBase : ReactiveObject
+public abstract class ViewModelBase : ReactiveObject, IActivatableViewModel
 {
+    public ViewModelActivator Activator { get; } = new();
 }

@@ -1,62 +1,13 @@
 using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using LiveChartsCore;
-using LiveChartsCore.Kernel.Sketches;
-using LiveChartsCore.Measure;
-using LiveChartsCore.SkiaSharpView;
-using LiveChartsCore.SkiaSharpView.Painting;
-using SkiaSharp;
 
 namespace PhoronixResultViewer.Models;
 
-public record CalculatedResults(Test Test, List<Result> Results)
-{
-    public int Height => Results.Count * 50 + 100;
+public readonly record struct Result(double Performance, double? PowerConsumption, string System);
 
-    public List<RowSeries<double>> Series =>
-    [
-        new RowSeries<double>
-        {
-            Values = Results.Select(result => result.Performance).ToList(),
-            XToolTipLabelFormatter = (point) => point.Model.ToString("F"),
-            YToolTipLabelFormatter = (point) => "",
-            ShowDataLabels = true,
-            DataLabelsPosition = DataLabelsPosition.Middle,
-            DataLabelsFormatter = (point) => point.Model.ToString("F")
-        }
-    ];
+public readonly record struct Test(string Title, string Identifier, string Description, PerformanceClass PerformanceClass, string Scale);
 
-    public List<Axis> YAxes =>
-    [
-        new Axis
-        {
-            Labels = Results.Select(r => r.System.Length < 18 ? r.System : r.System[..18] + "...").ToList(),
-            MinStep = 1,
-            LabelsPaint = new SolidColorPaint(new SKColor(0, 0, 0)),
-            ForceStepToMin = true
-        }
-    ];
+public readonly record struct TestResults(string Id, Test Test, Result Result);
 
-    public List<Axis> XAxes =>
-    [
-        new Axis
-        {
-            MinLimit = 0
-        }
-    ];
-}
+public readonly record struct TestSuite(string Name, List<string> TestNames);
 
-public record Result(double Performance, double? PowerConsumption, string System);
-
-public record Test(
-    string Title,
-    string Identifier,
-    string Description,
-    PerformanceClass PerformanceClass,
-    string Scale);
-
-public record TestResults(string Id, Test Test, Result Result);
-
-public record TestSuite(string Name, List<string> TestNames);
-
+public readonly record struct TestSuiteGroup(TestSuite Key, List<CalculatedResults> Results, int TotalTests);

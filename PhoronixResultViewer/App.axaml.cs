@@ -8,6 +8,7 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
 using PhoronixResultViewer.Extensions;
+using PhoronixResultViewer.Services;
 using PhoronixResultViewer.ViewModels;
 using PhoronixResultViewer.Views;
 
@@ -38,6 +39,8 @@ public partial class App : Application
         
         var services = collection.BuildServiceProvider();
         
+        var windowService = services.GetService<WindowService>();
+        
         var vm = services.GetRequiredService<MainWindowViewModel>();
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
@@ -46,7 +49,10 @@ public partial class App : Application
             {
                 DataContext = vm
             };
+            
+            windowService.Owner = desktop.MainWindow;
         }
+        
 
         base.OnFrameworkInitializationCompleted();
     }
