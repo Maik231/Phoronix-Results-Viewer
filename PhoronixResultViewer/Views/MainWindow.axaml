@@ -77,7 +77,7 @@
                     </ScrollViewer>
                 </Grid>
             </Border>
-            <ScrollViewer Grid.Row="0" Grid.Column="1">
+            <ScrollViewer Grid.Row="0" Grid.Column="1" x:Name="ScrollViewer">
                 <ItemsControl ItemsSource="{Binding GroupedResults}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -117,16 +117,17 @@
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <Border Classes="card">
-                                                    <lvc:CartesianChart ZoomMode="None" Background="{DynamicResource CardBackgroundBrush}"
-                                                                        HorizontalAlignment="Stretch"
-                                                                        Height="{Binding Height}"
-                                                                        Series="{Binding Series}"
-                                                                        YAxes="{Binding YAxes}"
-                                                                        XAxes="{Binding XAxes}">
-                                                        <lvc:CartesianChart.Title>
-                                                            <lvc:XamlDrawnLabelVisual TextSize="25" Padding="15" Text="{Binding Test.Title}" Paint="#ffffff" />
-                                                        </lvc:CartesianChart.Title>
-                                                    </lvc:CartesianChart>
+                                                    <StackPanel Orientation="Vertical">
+                                                        <TextBlock Text="{Binding Test.Title}" FontSize="25" Padding="15"
+                                                                   HorizontalAlignment="Center" />
+                                                        <lvc:CartesianChart ZoomMode="None" Background="{DynamicResource CardBackgroundBrush}"
+                                                                            HorizontalAlignment="Stretch"
+                                                                            Height="{Binding Height}"
+                                                                            Series="{Binding Series}"
+                                                                            YAxes="{Binding YAxes}"
+                                                                            XAxes="{Binding XAxes}">
+                                                        </lvc:CartesianChart>
+                                                    </StackPanel>
                                                 </Border>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>

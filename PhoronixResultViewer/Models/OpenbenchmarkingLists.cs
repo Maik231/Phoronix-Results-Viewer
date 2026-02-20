@@ -65,7 +65,7 @@ public static class OpenbenchmarkingLists
         return _testSuites;
     }
     
-    public static List<string> AVX512benchmarkList =
+    public static readonly IReadOnlyList<string> Avx512BenchmarkList =
     [
         "mt-dgemm",
         "aobench",

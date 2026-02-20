@@ -2,8 +2,102 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewModels="clr-namespace:PhoronixResultViewer.ViewModels"
+        xmlns:avalonia="clr-namespace:LiveChartsCore.SkiaSharpView.Avalonia;assembly=LiveChartsCore.SkiaSharpView.Avalonia"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="PhoronixResultViewer.Views.TestSuiteResultsView"
-        Title="TestSuiteResultsView">
-    Welcome to Avalonia!
+        Title="TestSuiteResultsView"
+        x:DataType="viewModels:TestSuiteResultsViewModel">
+    <Design.DataContext>
+        <viewModels:TestSuiteResultsViewModel />
+    </Design.DataContext>
+
+    <Window.Styles>
+        <Styles>
+            <Style Selector="Border.card">
+                <Setter Property="CornerRadius" Value="16" />
+                <Setter Property="Padding" Value="30" />
+                <Setter Property="Margin" Value="15" />
+                <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeBrush}" />
+                <Setter Property="BoxShadow" Value="0 0 30 0 DarkGray" />
+            </Style>
+        </Styles>
+    </Window.Styles>
+
+    <Grid ColumnDefinitions="*" RowDefinitions="auto,*">
+        <Border Classes="card" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch">
+            <TextBlock Text="{Binding TestSuite.Name}" FontSize="30" FontWeight="Bold" />
+        </Border>
+
+        <ScrollViewer Grid.Row="1" Grid.Column="0" x:Name="ScrollViewer">
+            <ItemsControl ItemsSource="{Binding TestSuiteResults}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <VirtualizingStackPanel CacheLength="1" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Classes="card">
+                            <Grid RowDefinitions="auto, auto" ColumnDefinitions="*">
+                                <StackPanel Orientation="Vertical" Grid.Row="0" Grid.Column="0" Margin="16, 0, 16, 0">
+                                    <TextBlock Text="{Binding Performance.Test.Title}"
+                                               FontSize="40"
+                                               FontWeight="Bold" />
+                                    <TextBlock VerticalAlignment="Center" FontSize="20"
+                                               Text="{Binding Performance.Test.Identifier}" />
+                                </StackPanel>
+                                <UniformGrid Grid.Row="1" Grid.Column="0" Columns="3">
+                                    <Border Classes="card">
+                                        <StackPanel Orientation="Vertical">
+                                            <TextBlock Text="Geometric mean" FontSize="25" Padding="15"
+                                                       HorizontalAlignment="Center" />
+                                            <avalonia:CartesianChart ZoomMode="None"
+                                                                     Background="{DynamicResource CardBackgroundBrush}"
+                                                                     HorizontalAlignment="Stretch"
+                                                                     Height="{Binding Performance.Height}"
+                                                                     Series="{Binding Performance.Series}"
+                                                                     YAxes="{Binding Performance.YAxes}"
+                                                                     XAxes="{Binding Performance.XAxes}">
+                                            </avalonia:CartesianChart>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Classes="card">
+                                        <StackPanel Orientation="Vertical">
+                                            <TextBlock Text="Average power consumption" FontSize="25" Padding="15"
+                                                       HorizontalAlignment="Center" />
+                                            <avalonia:CartesianChart ZoomMode="None"
+                                                                     Background="{DynamicResource CardBackgroundBrush}"
+                                                                     HorizontalAlignment="Stretch"
+                                                                     Height="{Binding PowerConsumption.Height}"
+                                                                     Series="{Binding PowerConsumption.Series}"
+                                                                     YAxes="{Binding PowerConsumption.YAxes}"
+                                                                     XAxes="{Binding PowerConsumption.XAxes}">
+                                            </avalonia:CartesianChart>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Classes="card">
+                                        <StackPanel Orientation="Vertical">
+                                            <TextBlock Text="Performance per Watt" FontSize="25" Padding="15"
+                                                       HorizontalAlignment="Center" />
+                                            <avalonia:CartesianChart ZoomMode="None"
+                                                                     Background="{DynamicResource CardBackgroundBrush}"
+                                                                     HorizontalAlignment="Stretch"
+                                                                     Height="{Binding PerformancePerWatt.Height}"
+                                                                     Series="{Binding PerformancePerWatt.Series}"
+                                                                     YAxes="{Binding PerformancePerWatt.YAxes}"
+                                                                     XAxes="{Binding PerformancePerWatt.XAxes}">
+                                            </avalonia:CartesianChart>
+                                        </StackPanel>
+                                    </Border>
+                                </UniformGrid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </Grid>
 </Window>

@@ -79,7 +79,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [ReactiveCommand]
     private void OpenSuiteDetails(TestSuite testSuite)
     {
-        var tests = CalculatedResults.Where(t => testSuite.TestNames.Any(testName => t.Test.Identifier.Contains(testName))).ToList();
+        var tests = FilterCalculatedResults(CalculatedResults.Where(t => testSuite.TestNames.Any(testName => t.Test.Identifier.Contains(testName))).ToList(), Systems);
         
         _windowService.ShowTestSuiteWindow(new TestSuiteGroup(testSuite, tests, tests.Count));
     }
@@ -89,24 +89,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         try
         {
-            var filterQuery = CalculatedResults.AsEnumerable();
-
-            if (ExcludeAvx512)
-            {
-                filterQuery = filterQuery.Where(t => OpenbenchmarkingLists.AVX512benchmarkList.Any(avx => t.Test.Identifier.Contains(avx)) == false);
-            }
-        
-            filterQuery = filterQuery.Select(c => new CalculatedResults(
-                c.Test, 
-                c.Results.Where(r =>
-                    {
-                        var foundSystem = Systems.First(system => r.System == system.Name);
-
-                        return foundSystem.Include || foundSystem.IsBase;
-                    }
-                ).ToList()));
-
-            var filteredResults = filterQuery.ToList();
+            var filteredResults = FilterCalculatedResults(CalculatedResults, Systems);
 
             var testSuites = await OpenbenchmarkingLists.GetTestSuites();
         
@@ -138,6 +121,28 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             // ignored
         }
+    }
+    
+    private List<CalculatedResults> FilterCalculatedResults(List<CalculatedResults> results, IReadOnlyList<TestSystem> systems)
+    {
+        var filterQuery = results.AsEnumerable();
+
+        if (ExcludeAvx512)
+        {
+            filterQuery = filterQuery.Where(t => OpenbenchmarkingLists.Avx512BenchmarkList.Any(avx => t.Test.Identifier.Contains(avx)) == false);
+        }
+        
+        filterQuery = filterQuery.Select(c => new CalculatedResults(
+            c.Test, 
+            c.Results.Where(r =>
+                {
+                    var foundSystem = systems.First(system => r.System == system.Name);
+
+                    return foundSystem.Include || foundSystem.IsBase;
+                }
+            ).ToList()));
+
+        return filterQuery.ToList();
     }
 
     private TestSuiteGroup CalculatedTestSuiteGroupResult(TestSuite testSuite, List<CalculatedResults> results)
