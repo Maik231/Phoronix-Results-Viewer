@@ -52,7 +52,7 @@
                                 <UniformGrid Grid.Row="1" Grid.Column="0" Columns="3">
                                     <Border Classes="card">
                                         <StackPanel Orientation="Vertical">
-                                            <TextBlock Text="Geometric mean" FontSize="25" Padding="15"
+                                            <TextBlock Text="Performance" FontSize="25" Padding="15"
                                                        HorizontalAlignment="Center" />
                                             <avalonia:CartesianChart ZoomMode="None"
                                                                      Background="{DynamicResource CardBackgroundBrush}"

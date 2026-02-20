@@ -14,11 +14,11 @@ public class TestSuiteResultsViewModel(TestSuiteGroup testSuiteGroup) : ViewMode
     {
         var power = new CalculatedResults(results.Test, results.Results
             .Where(r => r.PowerConsumption.HasValue)
-            .Select(r => new Result(r.PowerConsumption.Value, null, r.System)).ToList());
+            .Select(r => new Result(r.PowerConsumption!.Value, null, r.System)).ToList());
         
         var performancePerWatt = new CalculatedResults(results.Test, results.Results
             .Where(r => r.PowerConsumption.HasValue)
-            .Select(r => new Result(100* r.Performance / r.PowerConsumption.Value, null, r.System)).ToList());
+            .Select(r => new Result(100* r.Performance / r.PowerConsumption!.Value, null, r.System)).ToList());
         
         return new TestSuiteResultsRow(results, power, performancePerWatt);
     }
