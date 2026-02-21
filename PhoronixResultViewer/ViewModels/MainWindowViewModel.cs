@@ -269,11 +269,13 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 var identifier = node.Value["identifier"];
 
+                var scaleNode = node.Value["scale"];
+                
                 if (identifier is not null)
                 {
                     HandlePerformanceNode(node, newResults, identifier);
                 }
-                else if (node.Value["scale"] is not null && node.Value["scale"].GetValue<string>() == "Watts")
+                else if (scaleNode is not null && scaleNode.GetValue<string>() == "Watts")
                 {
                     HandlePowerConsumptionNode(node, newResults);
                 }
@@ -302,8 +304,10 @@ public partial class MainWindowViewModel : ViewModelBase
             {
                 return;
             }
+
+            var searchId = node.Value["parent"].GetValue<string>();
             
-            var index = newResults.FindIndex(x => x.Id == node.Value["parent"].GetValue<string>() && x.Result.System == system.Key);
+            var index = newResults.FindIndex(x => x.Id == searchId && x.Result.System == system.Key);
             
             if(index == -1)
             {
@@ -320,7 +324,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
         foreach (var result in node.Value["results"].AsObject())
         {
-            if (result.Value["value"] is null)
+            var valueNode = result.Value["value"];
+            
+            if (valueNode is null)
             {
                 continue;
             }
@@ -334,7 +340,7 @@ public partial class MainWindowViewModel : ViewModelBase
                     ? PerformanceClass.HigherIsBetter
                     : PerformanceClass.LowerIsBetter,
                 node.Value["scale"]?.GetValue<string>() ?? ""),
-                new Result(result.Value["value"].GetValue<double>(), null, result.Key)));
+                new Result(valueNode.GetValue<double>(), null, result.Key)));
         }
     }
 }
