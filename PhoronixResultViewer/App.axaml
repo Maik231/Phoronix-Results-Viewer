@@ -6,12 +6,23 @@
              xmlns:skia="clr-namespace:SkiaSharp;assembly=SkiaSharp"
              RequestedThemeVariant="Default">
              <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
-
+    
     <Application.DataTemplates>
         <local:ViewLocator/>
     </Application.DataTemplates>
              
     <Application.Styles>
         <FluentTheme />
+        <Styles>
+            <Style Selector="Border.card">
+                <Setter Property="CornerRadius" Value="16" />
+                <Setter Property="Padding" Value="30" />
+                <Setter Property="Margin" Value="15" />
+                <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeBrush}" />
+                <Setter Property="BoxShadow" Value="0 0 30 0 DarkGray" />
+            </Style>
+        </Styles>
     </Application.Styles>
 </Application>

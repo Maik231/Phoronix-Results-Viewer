@@ -12,20 +12,6 @@
         <viewModels:TestSuiteResultsViewModel />
     </Design.DataContext>
 
-    <Window.Styles>
-        <Styles>
-            <Style Selector="Border.card">
-                <Setter Property="CornerRadius" Value="16" />
-                <Setter Property="Padding" Value="30" />
-                <Setter Property="Margin" Value="15" />
-                <Setter Property="Background" Value="{DynamicResource CardBackgroundBrush}" />
-                <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeBrush}" />
-                <Setter Property="BoxShadow" Value="0 0 30 0 DarkGray" />
-            </Style>
-        </Styles>
-    </Window.Styles>
-
     <Grid ColumnDefinitions="*" RowDefinitions="auto,*">
         <Border Classes="card" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch">
             <TextBlock Text="{Binding TestSuite.Name}" FontSize="30" FontWeight="Bold" />
