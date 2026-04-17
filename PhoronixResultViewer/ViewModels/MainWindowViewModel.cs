@@ -119,7 +119,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            // ignored
+            await _dialogService.ShowExceptionDialogAsync(ex, "Failed to filter results");
         }
     }
     
@@ -190,7 +190,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [ReactiveCommand]
-    private void CalculateResults()
+    private async Task CalculateResults()
     {
         try
         {
@@ -238,7 +238,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            // ignored
+            await _dialogService.ShowExceptionDialogAsync(ex, "Failed to calculate results");
         }
     }
 
@@ -285,7 +285,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            // ignored
+            await _dialogService.ShowExceptionDialogAsync(ex, "Failed to import results");
         }
     }
 

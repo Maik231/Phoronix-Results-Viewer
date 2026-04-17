@@ -1,0 +1,27 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        x:Class="PhoronixResultViewer.Views.ErrorDialogView"
+        Width="900"
+        Height="600"
+        MinWidth="500"
+        MinHeight="300"
+        Title="Error"
+        WindowStartupLocation="CenterOwner">
+  <Grid RowDefinitions="Auto,*,Auto" Margin="16" RowSpacing="12">
+    <TextBlock x:Name="TitleText" FontSize="18" FontWeight="Bold"/>
+    <TextBox x:Name="MessageText"
+             Grid.Row="1"
+             IsReadOnly="True"
+             AcceptsReturn="True"
+             AcceptsTab="True"
+             TextWrapping="Wrap"/>
+    <Button Grid.Row="2"
+            HorizontalAlignment="Right"
+            Width="90"
+            Content="Close"
+            Click="Close_Click"/>
+  </Grid>
+</Window>
